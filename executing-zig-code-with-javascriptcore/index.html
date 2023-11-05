@@ -1,0 +1,127 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="description" content="Astro description"><meta name="viewport" content="width=device-width"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><meta name="generator" content="Astro v3.4.3"><title>JavaScriptCore in Zig / Executing Zig Code with JavaScriptCore</title><link href="themes/prism.css" rel="stylesheet"><link rel="stylesheet" href="/_astro/executing-zig-code-with-javascriptcore.b1ee489c.css" /></head><body><main class="container mx-auto flex flex-col gap-y-4 mb-2"><header class="xl:mx-96 mt-14 gap-y-4 flex flex-col"><a href="/" class="text-purple-800">Back <</a><h1 class="font-bold text-5xl">Executing Zig Code with JavaScriptCore</h1><p class="text-sm">
+In this blog post, we'll delve into a code snippet that merges the Zig
+        programming language with JavaScriptCore, a JavaScript engine library
+        from WebKit. This fusion of languages offers the possibility of
+        integrating JavaScript functionalities into applications developed in
+        Zig.
+</p><h2 class="text-lg">Code Breakdown</h2><p class="text-sm">
+Let's explore the code step by step to understand its functionality and
+        how Zig and JavaScriptCore intertwine.
+</p><h3 class="text-lg">Imports and Initial Setup</h3><p class="text-sm">
+The code begins with necessary imports in Zig, including the use of the
+        standard library (std) and the definition of the printing function
+        (print). It also imports the C interface of JavaScriptCore through
+        @cImport, enabling interoperability with the C library.
+</p></header><div class="xl:mx-96 flex flex-col gap-y-4"><pre class="language-js"><code class="language-js"><span class="token comment">// main.zig </span>
+<span class="token keyword">const</span> std <span class="token operator">=</span> @<span class="token keyword">import</span><span class="token punctuation">(</span><span class="token string">"std"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">const</span> print <span class="token operator">=</span> std<span class="token punctuation">.</span>debug<span class="token punctuation">.</span>print<span class="token punctuation">;</span>
+
+<span class="token keyword">const</span> jsc <span class="token operator">=</span> @<span class="token function">cImport</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+    @<span class="token function">cInclude</span><span class="token punctuation">(</span><span class="token string">"JavaScriptCore/JavaScript.h"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span></code></pre><h3 class="text-lg">Main Function</h3><p class="text-sm">
+The main function (main) is responsible for executing the core logic of
+        the program. First, it creates a Zig GeneralPurposeAllocator for memory
+        management.
+</p><pre class="language-js"><code class="language-js"><span class="token comment">// main.zig </span>
+pub fn <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">!</span><span class="token keyword">void</span> <span class="token punctuation">{</span>
+    <span class="token keyword">var</span> gpa <span class="token operator">=</span> std<span class="token punctuation">.</span>heap<span class="token punctuation">.</span><span class="token function">GeneralPurposeAllocator</span><span class="token punctuation">(</span><span class="token parameter"><span class="token punctuation">.</span><span class="token punctuation">{</span><span class="token punctuation">}</span></span><span class="token punctuation">)</span><span class="token punctuation">{</span><span class="token punctuation">}</span><span class="token punctuation">;</span>
+    <span class="token keyword">const</span> allocator <span class="token operator">=</span> gpa<span class="token punctuation">.</span><span class="token function">allocator</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span></code></pre><h3 class="text-lg">Creating the JavaScript Context</h3><p class="text-sm">
+Next, a JavaScript context is created using the JSGlobalContextCreate
+        function provided by JavaScriptCore. This context will serve as the
+        execution environment for JavaScript code.
+</p><pre class="language-js"><code class="language-js"><span class="token comment">// main.zig </span>
+    <span class="token keyword">const</span> <span class="token literal-property property">context</span><span class="token operator">:</span> jsc<span class="token punctuation">.</span>JSGlobalContextRef <span class="token operator">=</span> jsc<span class="token punctuation">.</span><span class="token function">JSGlobalContextCreate</span><span class="token punctuation">(</span><span class="token keyword">null</span><span class="token punctuation">)</span><span class="token punctuation">;</span></code></pre><h3 class="text-lg">Executing JavaScript Code</h3><p class="text-sm">
+A JavaScript string is created and evaluated using the JSEvaluateScript
+        function. In this case, the JavaScript code simply assigns a string
+        value and then returns it.
+</p><pre class="language-js"><code class="language-js"><span class="token comment">// main.zig </span>
+    <span class="token keyword">const</span> <span class="token literal-property property">jsCode</span><span class="token operator">:</span> jsc<span class="token punctuation">.</span>JSStringRef <span class="token operator">=</span> jsc<span class="token punctuation">.</span><span class="token function">JSStringCreateWithUTF8CString</span><span class="token punctuation">(</span><span class="token string">"const some = 'hello world'; some"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">const</span> <span class="token literal-property property">result</span><span class="token operator">:</span> jsc<span class="token punctuation">.</span>JSValueRef <span class="token operator">=</span> jsc<span class="token punctuation">.</span><span class="token function">JSEvaluateScript</span><span class="token punctuation">(</span>context<span class="token punctuation">,</span> jsCode<span class="token punctuation">,</span> <span class="token keyword">null</span><span class="token punctuation">,</span> <span class="token keyword">null</span><span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">,</span> <span class="token keyword">null</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">const</span> <span class="token literal-property property">jsString</span><span class="token operator">:</span> jsc<span class="token punctuation">.</span>JSStringRef <span class="token operator">=</span> jsc<span class="token punctuation">.</span><span class="token function">JSValueToStringCopy</span><span class="token punctuation">(</span>context<span class="token punctuation">,</span> result<span class="token punctuation">,</span> <span class="token keyword">null</span><span class="token punctuation">)</span><span class="token punctuation">;</span></code></pre><h3 class="text-lg">
+Converting JavaScript String to Zig String and Printing
+</h3><p class="text-sm">
+After the JavaScript result has been obtained, the code proceeds to
+        allocate a buffer using Zig's allocator to store the converted string.
+        This buffer is used to hold the result of converting the JavaScript
+        string to a Zig string.
+</p><pre class="language-js"><code class="language-js"><span class="token comment">// main.zig </span>
+    <span class="token keyword">var</span> buffer <span class="token operator">=</span> <span class="token keyword">try</span> allocator<span class="token punctuation">.</span><span class="token function">alloc</span><span class="token punctuation">(</span>u8<span class="token punctuation">,</span> jsc<span class="token punctuation">.</span><span class="token function">JSStringGetMaximumUTF8CStringSize</span><span class="token punctuation">(</span>jsString<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    defer allocator<span class="token punctuation">.</span><span class="token function">free</span><span class="token punctuation">(</span>buffer<span class="token punctuation">)</span><span class="token punctuation">;</span></code></pre><p class="text-sm">
+The jsc.JSStringGetMaximumUTF8CStringSize(jsString) function is used to
+        determine the maximum size required for the UTF-8 representation of the
+        JavaScript string. The buffer is allocated accordingly, and a defer
+        statement is used to ensure the buffer is freed once it goes out of
+        scope.
+</p><p class="text-sm">
+Next, the code retrieves the UTF-8 encoded string from the JavaScript
+        string using jsc.JSStringGetUTF8CString. The resulting string is then
+        printed using Zig's print function.
+</p><pre class="language-js"><code class="language-js"><span class="token comment">// main.zig </span>
+    <span class="token keyword">const</span> string_length <span class="token operator">=</span> jsc<span class="token punctuation">.</span><span class="token function">JSStringGetUTF8CString</span><span class="token punctuation">(</span>jsString<span class="token punctuation">,</span> buffer<span class="token punctuation">.</span>ptr<span class="token punctuation">,</span> buffer<span class="token punctuation">.</span>len<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">const</span> string <span class="token operator">=</span> buffer<span class="token punctuation">[</span><span class="token number">0.</span><span class="token punctuation">.</span>string_length<span class="token punctuation">]</span><span class="token punctuation">;</span>
+    <span class="token function">print</span><span class="token punctuation">(</span><span class="token string">"{s}"</span><span class="token punctuation">,</span> <span class="token punctuation">.</span><span class="token punctuation">{</span>string<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span></code></pre><p class="text-sm">
+This part of the code ensures that the JavaScript string is converted to
+        a format that Zig can work with and is then printed to the console.
+</p><h3 class="text-lg">Releasing Resources</h3><p class="text-sm">
+Finally, the code releases the resources associated with the JavaScript
+        string and the JavaScript context. This is important to prevent memory
+        leaks.
+</p><pre class="language-js"><code class="language-js"><span class="token comment">// main.zig </span>
+    jsc<span class="token punctuation">.</span><span class="token function">JSStringRelease</span><span class="token punctuation">(</span>jsString<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    jsc<span class="token punctuation">.</span><span class="token function">JSGlobalContextRelease</span><span class="token punctuation">(</span>context<span class="token punctuation">)</span><span class="token punctuation">;</span></code></pre><p class="text-sm">
+Releasing the JavaScript string is essential to free the memory used by
+        it, and releasing the JavaScript context is necessary to clean up the
+        resources allocated for JavaScript execution.
+</p><p class="text-sm">
+In summary, the complete code snippet demonstrates how to execute
+        JavaScript code within a Zig program, convert the JavaScript result to a
+        Zig string, and then print it. Additionally, it emphasizes the
+        importance of releasing resources to maintain memory efficiency and
+        avoid potential issues.
+</p><h3 class="text-lg">Full Code</h3><pre class="language-js"><code class="language-js"><span class="token comment">// main.zig       </span>
+<span class="token keyword">const</span> std <span class="token operator">=</span> @<span class="token keyword">import</span><span class="token punctuation">(</span><span class="token string">"std"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">const</span> print <span class="token operator">=</span> std<span class="token punctuation">.</span>debug<span class="token punctuation">.</span>print<span class="token punctuation">;</span>
+
+<span class="token keyword">const</span> c <span class="token operator">=</span> @<span class="token function">cImport</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+    @<span class="token function">cInclude</span><span class="token punctuation">(</span><span class="token string">"stdio.h"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token keyword">const</span> jsc <span class="token operator">=</span> @<span class="token function">cImport</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+    @<span class="token function">cInclude</span><span class="token punctuation">(</span><span class="token string">"JavaScriptCore/JavaScript.h"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+pub fn <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">!</span><span class="token keyword">void</span> <span class="token punctuation">{</span>
+    <span class="token comment">// Create a GeneralPurposeAllocator for memory allocation</span>
+    <span class="token keyword">var</span> gpa <span class="token operator">=</span> std<span class="token punctuation">.</span>heap<span class="token punctuation">.</span><span class="token function">GeneralPurposeAllocator</span><span class="token punctuation">(</span><span class="token parameter"><span class="token punctuation">.</span><span class="token punctuation">{</span><span class="token punctuation">}</span></span><span class="token punctuation">)</span><span class="token punctuation">{</span><span class="token punctuation">}</span><span class="token punctuation">;</span>
+    <span class="token keyword">const</span> allocator <span class="token operator">=</span> gpa<span class="token punctuation">.</span><span class="token function">allocator</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token comment">// Create a JavaScript context</span>
+    <span class="token keyword">const</span> <span class="token literal-property property">context</span><span class="token operator">:</span> jsc<span class="token punctuation">.</span>JSGlobalContextRef <span class="token operator">=</span> jsc<span class="token punctuation">.</span><span class="token function">JSGlobalContextCreate</span><span class="token punctuation">(</span><span class="token keyword">null</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token comment">// Create a JavaScript string</span>
+    <span class="token keyword">const</span> <span class="token literal-property property">jsCode</span><span class="token operator">:</span> jsc<span class="token punctuation">.</span>JSStringRef <span class="token operator">=</span> jsc<span class="token punctuation">.</span><span class="token function">JSStringCreateWithUTF8CString</span><span class="token punctuation">(</span><span class="token string">"const some = 'hello world'; some"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token comment">// Evaluate the JavaScript code in the context</span>
+    <span class="token keyword">const</span> <span class="token literal-property property">result</span><span class="token operator">:</span> jsc<span class="token punctuation">.</span>JSValueRef <span class="token operator">=</span> jsc<span class="token punctuation">.</span><span class="token function">JSEvaluateScript</span><span class="token punctuation">(</span>context<span class="token punctuation">,</span> jsCode<span class="token punctuation">,</span> <span class="token keyword">null</span><span class="token punctuation">,</span> <span class="token keyword">null</span><span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">,</span> <span class="token keyword">null</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token comment">// Convert the result to a string</span>
+    <span class="token keyword">const</span> <span class="token literal-property property">jsString</span><span class="token operator">:</span> jsc<span class="token punctuation">.</span>JSStringRef <span class="token operator">=</span> jsc<span class="token punctuation">.</span><span class="token function">JSValueToStringCopy</span><span class="token punctuation">(</span>context<span class="token punctuation">,</span> result<span class="token punctuation">,</span> <span class="token keyword">null</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token comment">// Allocate memory to store the string in UTF-8 format</span>
+    <span class="token keyword">var</span> buffer <span class="token operator">=</span> <span class="token keyword">try</span> allocator<span class="token punctuation">.</span><span class="token function">alloc</span><span class="token punctuation">(</span>u8<span class="token punctuation">,</span> jsc<span class="token punctuation">.</span><span class="token function">JSStringGetMaximumUTF8CStringSize</span><span class="token punctuation">(</span>jsString<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    defer allocator<span class="token punctuation">.</span><span class="token function">free</span><span class="token punctuation">(</span>buffer<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token comment">// Get the string in UTF-8 format</span>
+    <span class="token keyword">const</span> string_length <span class="token operator">=</span> jsc<span class="token punctuation">.</span><span class="token function">JSStringGetUTF8CString</span><span class="token punctuation">(</span>jsString<span class="token punctuation">,</span> buffer<span class="token punctuation">.</span>ptr<span class="token punctuation">,</span> buffer<span class="token punctuation">.</span>len<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">const</span> string <span class="token operator">=</span> buffer<span class="token punctuation">[</span><span class="token number">0.</span><span class="token punctuation">.</span>string_length<span class="token punctuation">]</span><span class="token punctuation">;</span>
+
+    <span class="token comment">// Print the string</span>
+    <span class="token function">print</span><span class="token punctuation">(</span><span class="token string">"{s}"</span><span class="token punctuation">,</span> <span class="token punctuation">.</span><span class="token punctuation">{</span>string<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token comment">// Release resources</span>
+    jsc<span class="token punctuation">.</span><span class="token function">JSStringRelease</span><span class="token punctuation">(</span>jsString<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    jsc<span class="token punctuation">.</span><span class="token function">JSGlobalContextRelease</span><span class="token punctuation">(</span>context<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span></code></pre><h3 class="text-lg">Run Code</h3><pre class="language-js"><code class="language-js">zig run main<span class="token punctuation">.</span>zig <span class="token operator">-</span><span class="token constant">I</span><span class="token operator">/</span>usr<span class="token operator">/</span>include<span class="token operator">/</span>webkitgtk<span class="token operator">-</span><span class="token number">4.0</span> <span class="token operator">-</span>ljavascriptcoregtk<span class="token operator">-</span><span class="token number">4.0</span> <span class="token operator">-</span>lc</code></pre><p class="text-sm">
+I hope this extended explanation provides a more thorough understanding
+        of the entire code, including the parts that were initially omitted.
+</p></div></main></body></html>
